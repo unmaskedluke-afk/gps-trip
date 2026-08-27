@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#111111">
+
+<title>GPS Trip Meter</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #111;
+  color: white;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  display: flex;
+  justify-content: center;
+}
+
+.app {
+  width: 100%;
+  max-width: 500px;
+  padding: 45px 20px 40px;
+  text-align: center;
+}
+
+h1 {
+  font-size: 18px;
+  margin: 0 0 35px;
+  color: #999;
+  letter-spacing: 2px;
+}
+
+.distance-label {
+  color: #777;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.distance {
+  font-size: 72px;
+  line-height: 1;
+  font-weight: 700;
+  margin-top: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.km {
+  color: #888;
+  font-size: 18px;
+  margin-top: 8px;
+  margin-bottom: 35px;
+}
+
+.cost-box {
+  background: #1d1d1d;
+  border-radius: 18px;
+  padding: 20px;
+  margin-bottom: 15px;
+}
+
+.cost-label {
+  color: #888;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+}
+
+.cost {
+  font-size: 42px;
+  font-weight: 700;
+  margin-top: 5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.stat {
+  background: #1d1d1d;
+  border-radius: 14px;
+  padding: 17px 8px;
+}
+
+.stat-label {
+  color: #777;
+  font-size: 11px;
+  margin-bottom: 7px;
+  text-transform: uppercase;
+}
+
+.stat-value {
+  font-size: 19px;
+  font-weight: 600;
+}
+
+.gps-active {
+  color: #28c76f;
+}
+
+.settings {
+  background: #181818;
+  border-radius: 14px;
+  padding: 15px;
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.settings-title {
+  color: #888;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 10px 0;
+}
+
+.setting-row label {
+  font-size: 14px;
+  color: #aaa;
+}
+
+.setting-row input {
+  width: 100px;
+  background: #252525;
+  border: 1px solid #333;
+  color: white;
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 16px;
+  text-align: right;
+}
+
+.status {
+  min-height: 22px;
+  color: #888;
+  margin-bottom: 15px;
+  font-size: 13px;
+}
+
+button {
+  width: 100%;
+  height: 62px;
+  border: 0;
+  border-radius: 16px;
+  font-size: 19px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+#startButton {
+  background: #28c76f;
+  color: #07180e;
+}
+
+#stopButton {
+  display: none;
+  background: #ff4d4d;
+  color: white;
+}
+
+.note {
+  margin-top: 20px;
+  color: #555;
+  font-size: 11px;
+  line-height: 1.5;
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <h1>GPS TRIP METER</h1>
+
+  <div class="distance-label">Distance</div>
+  <div id="distance" class="distance">0.00</div>
+  <div class="km">KM</div>
+
+  <!-- LIVE FUEL COST -->
+
+  <div class="cost-box">
+    <div class="cost-label">Estimated Fuel Cost</div>
+    <div id="fuelCost" class="cost">RM 0.00</div>
+  </div>
+
+  <!-- STATISTICS -->
+
+  <div class="stats">
+
+    <div class="stat">
+      <div class="stat-label">Time</div>
+      <div id="time" class="stat-value">00:00:00</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-label">Speed</div>
+      <div id="speed" class="stat-value">0 km/h</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-label">Fuel / KM</div>
+      <div id="costPerKm" class="stat-value">14.29 sen</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-label">Fuel Used</div>
+      <div id="litresUsed" class="stat-value">0.00 L</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-label">GPS Accuracy</div>
+      <div id="accuracy" class="stat-value">--</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-label">GPS</div>
+      <div id="gpsStatus" class="stat-value">OFF</div>
+    </div>
+
+  </div>
+
+  <!-- SETTINGS -->
+
+  <div class="settings">
+
+    <div class="settings-title">
+      Fuel Settings
+    </div>
+
+    <div class="setting-row">
+      <label>Fuel Price (RM/L)</label>
+      <input
+        id="fuelPrice"
+        type="number"
+        value="1.99"
+        step="0.01"
+        inputmode="decimal"
+        onchange="updateFuelDisplay()"
+      >
+    </div>
+
+    <div class="setting-row">
+      <label>Fuel Economy (KM/L)</label>
+      <input
+        id="fuelEconomy"
+        type="number"
+        value="13.93"
+        step="0.01"
+        inputmode="decimal"
+        onchange="updateFuelDisplay()"
+      >
+    </div>
+
+  </div>
+
+  <div id="status" class="status">
+    Ready to start
+  </div>
+
+  <button id="startButton" onclick="startTrip()">
+    START TRIP
+  </button>
+
+  <button id="stopButton" onclick="stopTrip()">
+    STOP TRIP
+  </button>
+
+  <div class="note">
+    Keep this page open while driving for the most reliable GPS tracking.
+    Fuel usage is an estimate based on the fuel economy entered above.
+  </div>
+
+</div>
+
+<script>
+
+let watchID = null;
+let previousPosition = null;
+
+let totalDistance = 0;
+
+let startTime = null;
+let timerInterval = null;
+
+let running = false;
+
+
+// ========================================
+// START TRIP
+// ========================================
+
+function startTrip() {
+
+  if (!navigator.geolocation) {
+
+    alert("GPS is not supported by this browser.");
+    return;
+
+  }
+
+  totalDistance = 0;
+  previousPosition = null;
+  running = true;
+
+  document.getElementById("distance").textContent = "0.00";
+  document.getElementById("fuelCost").textContent = "RM 0.00";
+  document.getElementById("litresUsed").textContent = "0.00 L";
+  document.getElementById("speed").textContent = "0 km/h";
+  document.getElementById("time").textContent = "00:00:00";
+
+  document.getElementById("startButton").style.display = "none";
+  document.getElementById("stopButton").style.display = "block";
+
+  document.getElementById("status").textContent =
+    "Waiting for GPS...";
+
+  document.getElementById("gpsStatus").textContent = "WAIT";
+
+  startTime = Date.now();
+
+  timerInterval =
+    setInterval(updateTimer, 1000);
+
+
+  watchID =
+    navigator.geolocation.watchPosition(
+
+      positionUpdate,
+
+      gpsError,
+
+      {
+        enableHighAccuracy: true,
+        maximumAge: 0,
+        timeout: 15000
+      }
+
+    );
+
+}
+
+
+// ========================================
+// GPS UPDATE
+// ========================================
+
+function positionUpdate(position) {
+
+  if (!running) return;
+
+
+  const lat =
+    position.coords.latitude;
+
+  const lon =
+    position.coords.longitude;
+
+  const accuracy =
+    position.coords.accuracy;
+
+
+  document.getElementById("accuracy").textContent =
+    Math.round(accuracy) + " m";
+
+
+  document.getElementById("gpsStatus").textContent =
+    "ACTIVE";
+
+  document.getElementById("gpsStatus").className =
+    "stat-value gps-active";
+
+
+  document.getElementById("status").textContent =
+    "Trip recording";
+
+
+  // SPEED
+
+  if (position.coords.speed !== null) {
+
+    let speedKmh =
+      position.coords.speed * 3.6;
+
+    if (speedKmh < 1)
+      speedKmh = 0;
+
+    document.getElementById("speed").textContent =
+      Math.round(speedKmh) + " km/h";
+
+  }
+
+
+  // Ignore poor GPS readings
+
+  if (accuracy > 50)
+    return;
+
+
+  const currentPosition = {
+
+    latitude: lat,
+    longitude: lon
+
+  };
+
+
+  if (previousPosition !== null) {
+
+    const distance =
+      calculateDistance(
+
+        previousPosition.latitude,
+        previousPosition.longitude,
+
+        currentPosition.latitude,
+        currentPosition.longitude
+
+      );
+
+
+    // Ignore tiny GPS movements below 3 metres
+
+    if (distance >= 3) {
+
+      totalDistance += distance;
+
+      updateTripDisplay();
+
+    }
+
+  }
+
+
+  previousPosition =
+    currentPosition;
+
+}
+
+
+// ========================================
+// UPDATE DISPLAY
+// ========================================
+
+function updateTripDisplay() {
+
+  const distanceKm =
+    totalDistance / 1000;
+
+
+  document.getElementById("distance").textContent =
+    distanceKm.toFixed(2);
+
+
+  updateFuelDisplay();
+
+}
+
+
+// ========================================
+// FUEL CALCULATIONS
+// ========================================
+
+function updateFuelDisplay() {
+
+  const fuelPrice =
+    parseFloat(
+      document.getElementById("fuelPrice").value
+    ) || 0;
+
+
+  const fuelEconomy =
+    parseFloat(
+      document.getElementById("fuelEconomy").value
+    ) || 1;
+
+
+  // RM per KM
+
+  const rmPerKm =
+    fuelPrice / fuelEconomy;
+
+
+  // Convert RM to sen
+
+  const senPerKm =
+    rmPerKm * 100;
+
+
+  // Distance travelled
+
+  const distanceKm =
+    totalDistance / 1000;
+
+
+  // Estimated litres consumed
+
+  const litresUsed =
+    distanceKm / fuelEconomy;
+
+
+  // Estimated RM consumed
+
+  const fuelCost =
+    litresUsed * fuelPrice;
+
+
+  document.getElementById("costPerKm").textContent =
+    senPerKm.toFixed(2) + " sen";
+
+
+  document.getElementById("litresUsed").textContent =
+    litresUsed.toFixed(2) + " L";
+
+
+  document.getElementById("fuelCost").textContent =
+    "RM " + fuelCost.toFixed(2);
+
+}
+
+
+// ========================================
+// HAVERSINE DISTANCE
+// ========================================
+
+function calculateDistance(
+  lat1,
+  lon1,
+  lat2,
+  lon2
+) {
+
+  const R = 6371000;
+
+
+  const phi1 =
+    lat1 * Math.PI / 180;
+
+  const phi2 =
+    lat2 * Math.PI / 180;
+
+
+  const deltaPhi =
+    (lat2 - lat1) *
+    Math.PI / 180;
+
+
+  const deltaLambda =
+    (lon2 - lon1) *
+    Math.PI / 180;
+
+
+  const a =
+
+    Math.sin(deltaPhi / 2) *
+    Math.sin(deltaPhi / 2)
+
+    +
+
+    Math.cos(phi1) *
+    Math.cos(phi2) *
+
+    Math.sin(deltaLambda / 2) *
+    Math.sin(deltaLambda / 2);
+
+
+  const c =
+
+    2 *
+
+    Math.atan2(
+
+      Math.sqrt(a),
+
+      Math.sqrt(1 - a)
+
+    );
+
+
+  return R * c;
+
+}
+
+
+// ========================================
+// TIMER
+// ========================================
+
+function updateTimer() {
+
+  if (!startTime)
+    return;
+
+
+  const elapsed =
+
+    Math.floor(
+
+      (Date.now() - startTime) / 1000
+
+    );
+
+
+  const hours =
+    Math.floor(elapsed / 3600);
+
+
+  const minutes =
+    Math.floor(
+      (elapsed % 3600) / 60
+    );
+
+
+  const seconds =
+    elapsed % 60;
+
+
+  document.getElementById("time").textContent =
+
+    String(hours).padStart(2, "0")
+
+    + ":" +
+
+    String(minutes).padStart(2, "0")
+
+    + ":" +
+
+    String(seconds).padStart(2, "0");
+
+}
+
+
+// ========================================
+// STOP TRIP
+// ========================================
+
+function stopTrip() {
+
+  running = false;
+
+
+  if (watchID !== null) {
+
+    navigator.geolocation.clearWatch(
+      watchID
+    );
+
+    watchID = null;
+
+  }
+
+
+  clearInterval(timerInterval);
+
+
+  document.getElementById("gpsStatus").textContent =
+    "OFF";
+
+
+  document.getElementById("gpsStatus").className =
+    "stat-value";
+
+
+  document.getElementById("speed").textContent =
+    "0 km/h";
+
+
+  document.getElementById("status").textContent =
+    "Trip completed";
+
+
+  document.getElementById("stopButton").style.display =
+    "none";
+
+
+  document.getElementById("startButton").style.display =
+    "block";
+
+
+  document.getElementById("startButton").textContent =
+    "START NEW TRIP";
+
+}
+
+
+// ========================================
+// GPS ERROR
+// ========================================
+
+function gpsError(error) {
+
+  let message =
+    "GPS error.";
+
+
+  if (error.code === 1)
+    message =
+      "Location permission denied.";
+
+
+  if (error.code === 2)
+    message =
+      "Location unavailable.";
+
+
+  if (error.code === 3)
+    message =
+      "GPS timed out.";
+
+
+  document.getElementById("status").textContent =
+    message;
+
+}
+
+
+// Initialize fuel calculation
+
+updateFuelDisplay();
+
+</script>
+
+</body>
+</html>
